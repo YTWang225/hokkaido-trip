@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026 Hokkaido Family Trip</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;700&display=swap');
+        
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #F5F7FA;
+            color: #334155;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .expand-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s cubic-bezier(0, 1, 0, 1);
+            opacity: 0;
+        }
+
+        .expanded .expand-content {
+            max-height: 3000px;
+            opacity: 1;
+            transition: max-height 0.6s ease-in-out;
+        }
+
+        .snow-particle {
+            position: fixed;
+            background: white;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.6;
+        }
+
+        @keyframes snowfall {
+            0% { transform: translateY(-10vh) translateX(0); }
+            100% { transform: translateY(110vh) translateX(20px); }
+        }
+
+        .timeline-line::before {
+            content: '';
+            position: absolute;
+            left: 39px;
+            top: 20px;
+            bottom: 20px;
+            width: 1px;
+            background: #E2E8F0;
+            z-index: 0;
+        }
+    </style>
+</head>
+<body class="pb-20">
+
+    <div id="snow-container"></div>
+
+    <!-- 封面區塊 (窄版) -->
+    <div class="bg-slate-900 pt-8 pb-6 px-8 text-center relative overflow-hidden">
+        <div class="absolute inset-0 opacity-20 pointer-events-none">
+            <div style="position: absolute; top: 10%; left: 10%;"><i data-lucide="snowflake" class="w-12 h-12 text-white/20"></i></div>
+            <div style="position: absolute; bottom: 10%; right: 10%;"><i data-lucide="snowflake" class="w-16 h-16 text-white/20"></i></div>
+        </div>
+        <div class="relative z-10">
+            <p class="text-blue-400 text-[10px] font-bold tracking-[0.2em] uppercase mb-0.5">Family Trip</p>
+            <h1 class="text-white text-3xl font-extrabold tracking-tighter mb-0.5">Hokkaido</h1>
+            <p class="text-slate-500 text-[10px] font-medium tracking-[0.3em] uppercase">2026 WINTER</p>
+            <div class="w-10 h-0.5 bg-blue-500 mx-auto rounded-full mt-3"></div>
+        </div>
+    </div>
+
+    <!-- Sticky Header (兩行字 + py-4) -->
+    <header class="sticky top-0 z-40 glass border-b border-slate-200 px-6 py-4 flex justify-between items-center shadow-sm">
+        <div>
+            <div class="flex items-center gap-2">
+                <span class="text-[9px] bg-slate-800 text-white px-1.5 py-0.5 font-bold tracking-widest rounded-sm">JAN 2026</span>
+                <h1 class="text-base font-bold text-slate-900 tracking-tight leading-none" id="header-title">冬季注意事項 ❄️</h1>
+            </div>
+            <p class="text-[10px] text-slate-500 font-medium mt-1" id="header-subtitle">Travel Preparation</p>
+        </div>
+        <div class="text-right">
+            <div class="flex items-center justify-end text-blue-500 font-bold leading-none">
+                <span class="text-sm" id="temp-val">-5°C</span>
+                <i data-lucide="snowflake" class="w-3.5 h-3.5 ml-1"></i>
+            </div>
+            <p class="text-[9px] text-slate-400 font-bold tracking-widest uppercase mt-0.5" id="header-loc">Guidance</p>
+        </div>
+    </header>
+
+    <main class="max-w-md mx-auto px-4 py-4 relative" id="main-content">
+        <!-- 動態渲染區域 -->
+    </main>
+
+    <!-- 底部導航 (輕量化按鈕) -->
+    <nav class="fixed bottom-4 left-1/2 -translate-x-1/2 w-[94%] max-w-sm glass border border-slate-200 rounded-3xl shadow-2xl p-1 z-50">
+        <div class="flex justify-between items-center px-1 overflow-x-auto no-scrollbar gap-1">
+            <button onclick="setView('checklist')" id="btn-checklist" class="flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-all text-slate-400 hover:bg-slate-50">
+                <i data-lucide="list-checks" class="w-4 h-4"></i>
+            </button>
+            <button onclick="setView('tips')" id="btn-tips" class="flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-all bg-orange-500 text-white shadow-lg">
+                <i data-lucide="help-circle" class="w-4 h-4"></i>
+            </button>
+            <div class="w-[1px] h-5 bg-slate-200 mx-0.5 flex-shrink-0"></div>
+            <div class="flex gap-1" id="day-buttons">
+                <!-- D1-D7 由 JS 產生 -->
+            </div>
+        </div>
+    </nav>
+
+    <script>
+        const tripData = {
+            1: {
+                title: "札幌之旅 ❄️",
+                date: "2026 / 01 / 15 (THU)",
+                location: "Sapporo",
+                events: [
+                    { time: "04:30", type: "交通", title: "桃園機場集合報到 🛫", loc: "TPE 第二航廈 長榮 BR166", color: "blue", transport: "✈️ 長榮航空 BR166\n請準時到達第二航廈報到櫃檯。", note: "記得檢查護照與電子簽證。", intro: "開啟期待已久的北海道八日之旅！大家集合囉～ ✨" },
+                    { time: "11:00", type: "交通", title: "抵達新千歲機場 ❄️", loc: "新千歳空港 (CTS) 第一航廈", color: "blue", intro: "順利降落！辦理入境手續，準備迎接北海道的冷空氣與初雪。🇯🇵" },
+                    { time: "12:00", type: "購物", title: "新千歲國內線逛街 🍦🛍️", loc: "新千歳空港國內線 2F", color: "orange", note: "\n📍Calbee \n📍かま栄 \n📍Kinotoya \n📍Mike Stand", intro: "國內線安檢前區是美食天堂！推薦必吃 Kinotoya 霜淇淋與現炸 Calbee 薯條。😋" },
+                    { time: "13:00", type: "交通", title: "前往札幌市區 🚇🚆", loc: "札幌車站", color: "blue", transport: "🚇 JR 快速機場線 （>札幌 Sapporo）\n¥1230 | 看人潮可加買指定席 ¥840\n特別快速(36分) / 快速(37分) / 區間快速(43分)", intro: "離開新千歲機場，搭乘 JR 前往北海道最大的交通樞紐。窗外已經是雪白世界了！🌨️" },
+                    { time: "14:00", type: "住宿", title: "JRinn 札幌站南口 🏨🧳", loc: "JR進 札幌站南口", color: "green", note: "⚡️15:00可check in。早到可寄放行李。", intro: "抵達飯店！這幾天的落腳點位置極佳，先放重物再出發。📦" },
+                    { time: "15:00", type: "用餐", title: "下午茶 🍣 Triton 壽司 🍣😋", loc: "回転寿しトリトン 北8条光星店", color: "red", transport: "🚶🏻‍♂️ JR札幌駅北口 步行11分\n🚌 巴士 東63/東19 > 北8條東5丁目 (2站)", note: "⚡️先抽號碼排，可去對面札幌藥妝逛。", intro: "北海道在地人也排隊的神級迴轉壽司！每一口都是大海的鮮甜。🥢" },
+                    { time: "16:30", type: "觀光", title: "札幌啤酒博物館 🍺🏛️", loc: "札幌啤酒博物館", color: "purple", note: "18:00關門。", intro: "日本唯一的啤酒主題博物館，介紹札幌啤酒的誕生歷史與釀造文化，建築為紅磚風格，充滿明治時代氛圍。館內可參觀展覽、了解北海道啤酒發展，並可自費品嚐經典啤酒，是札幌具代表性的觀光景點之一。🍻" },
+                    { time: "18:00", type: "購物", title: "札幌Stellar Place 🛍️🏢", loc: "札幌Stellar Place", color: "orange", transport: "🚌 交通：巴士 東63 / 迴圈88 / 188 往札幌站", note: "\n📍SHIRO \n📍The North Face \n📍HMV 唱片行 \n📍Disney store", intro: "品牌齊全的超好逛商場，可以一次逛完心儀品牌。🧤" },
+                    { time: "18:45", type: "購物", title: "Montbell 札幌專賣店 🏔️🎒", loc: "Montbell Sapporo Akarenga Terrace", color: "orange", transport: "🚇 走地下街直通。\n路過飯店可以順便 check-in。", note: "位於 Akarenga Terrace，北海道冬季服飾必看。", intro: "日本戶外第一品牌，冬季服裝與配件的首選，機能服飾一應俱全。🥾" },
+                    { time: "19:30", type: "觀光", title: "大通公園散策 🌳❄️", loc: "大通公園", color: "purple", intro: "札幌市中心最著名的帶狀公園，冬天天氣好時散步非常舒服，也是各類雪祭慶典的舉辦地。🌃" },
+                    { time: "20:30", type: "觀光", title: "狸小路商店街 🦝🛍️", loc: "狸小路4丁目", color: "purple", note: "\n📍Loft \n📍PARCO \n📍ABC Mart \n📍#C-pla", intro: "狸小路商店街位於札幌市中心，是北海道歷史最悠久、最具代表性的商店街之一，全長約900公尺，橫跨1丁目至7丁目。街道設有遮棚，即使在下雪或寒冷的冬天也能舒適逛街。\n\n【1～3 丁目｜觀光與伴手禮區】\n聚集各大藥妝店、北海道限定伴手禮與甜點品牌（白色戀人、ROYCE、LeTAO 等）。🍫\n\n【4 丁目｜最熱鬧核心區】\n設有大型唐吉訶德、平價服飾、雜貨與小吃店，從白天逛到深夜都很熱鬧。\n\n【5 丁目｜藥妝與生活用品區】\n藥妝店與生活雜貨選擇豐富，適合比價採買日用品與保健食品。\n\n【6 丁目｜美食集中區】\n拉麵店、居酒屋與各式餐廳聚集，是體驗北海道飲食文化的好地方。\n\n【7 丁目｜在地風情區】\n多為老字號餐廳、小酒吧與昭和風小店，充滿在地生活感。" },
+                    { time: "21:30", type: "用餐", title: "晚餐 🦪 牡蠣小屋 🦪🔥", loc: "カキ小屋ルン告カーニバル", color: "red", note: "開到22:30。建議先抽號碼牌。", intro: "最後一站享用新鮮肥美的厚岸產牡蠣，熱騰騰的現烤美味。🤤" },
+                    { time: "22:30", type: "住宿", title: "回飯店休息 💤🌙", loc: "JR進 札幌站南口", color: "green", intro: "結束充實的第一天行程，回到溫暖的飯店放鬆休息。😴" }
+                ]
+            },
+            2: {
+                title: "小樽冬日散策 🐧",
+                date: "2026 / 01 / 16 (FRI)",
+                location: "Otaru",
+                events: [
+                    { time: "07:30", type: "用餐", title: "早餐 🍙 にぎりめし", loc: "にぎりめし (薄野)", color: "red", transport: "🚇 南北線（札幌 > 薄野）約 20min", intro: "在薄野品嚐熱騰騰的現做飯糰，為小樽之旅補充體力。" },
+                    { time: "09:00", type: "交通", title: "前往小樽車站 🚇", loc: "札幌車站 > 小樽車站", color: "blue", transport: "🚇 JR 快速機場線 ¥800\n班次建議：\n- 3號月台 09:00-09:45\n- 3號月台 09:33-10:07\n- 4號月台 10:00-10:41", intro: "搭乘火車前往充滿異國風情的港口城市小樽。" },
+                    { time: "10:20", type: "交通", title: "轉乘巴士前往水族館 🚌", loc: "小樽站前 3 號月台", color: "blue", transport: "🚌 11 祝津線：10:00-10:27 / 10:41-11:00\n🚌 直行11水族館線：10:20-10:39", intro: "小樽站前 3 號月台排隊上車。" },
+                    { time: "11:00", type: "觀光", title: "小樽水族館 🐬❄️", loc: "小樽水族館", color: "purple", note: "\n🐬 海豚表演 11:00 / 13:00\n🐧 企鵝走路 11:30 / 12:40", intro: "這裡有著名的雪中企鵝散步，是北海道冬季限定的萌感體驗。" },
+                    { time: "13:30", type: "用餐", title: "午餐 🦐 民宿 青塚食堂", loc: "民宿 青塚食堂", color: "red", intro: "品嚐當地漁師直送的海鮮料理，新鮮美味。" },
+                    { time: "15:00", type: "觀光", title: "小樽住吉神社 ⛩️❄️", loc: "小樽住吉神社", color: "purple", transport: "🚌 返回小樽站再看公車：\n🚌 16奧澤線 (小樽站前 > 住吉神社前)", note: "⚡️ 建議先回到小樽站再看當下公車班次。", intro: "位於小樽市高地，是當地歷史悠久的守護神社，主祀住吉三神，象徵航海安全與生活平安。冬季白雪覆蓋鳥居與參道，氛圍寧靜莊嚴。" },
+                    { time: "16:30", type: "觀光", title: "小樽運河與石造倉庫 🕯️❄️", loc: "小樽運河", color: "purple", note: "\n📍Un délice 布丁大福\n📍小樽蒸汽鐘\n📍小樽北菓樓 總店\n📍LeTAO 總店\n📍六花亭 小樽運河店", intro: "【歷史簡介】\n小樽運河於 1923 年完工，是北海道開拓時期的重要命脈。與填海造陸不同，它是將岸邊海面圍起來鑿成的『嵌入式』運河。隨著瓦斯燈亮起，兩旁保存完好的石造倉庫群散發著大正時代的迷人浪漫。" },
+                    { time: "18:30", type: "用餐", title: "晚餐 🥩 cafe BAAL 🥩", loc: "cafe BAAL", color: "red", note: "好吃的牛排", intro: "隱身在小樽巷弄中的質感咖啡廳，牛排非常推薦。" },
+                    { time: "19:30", type: "交通", title: "返回札幌 🚇", loc: "小樽站 > 札幌站", color: "blue", transport: "🚇 JR 班次建議：\n- 19:27-20:01 / 19:34-20:19 / 19:56-20:42", intro: "帶著小樽的浪漫回憶返回札幌。" },
+                    { time: "22:00", type: "購物", title: "準備隔天早餐 🥖", loc: "札幌車站周邊", color: "orange", note: "或是隔天要更早起買～～", intro: "為明天的美瑛之行預備糧食。" },
+                    { time: "23:00", type: "住宿", title: "飯店休息 💤", loc: "JR進 札幌站南口", color: "green", intro: "回到溫暖的房間，Day 2 順利完成。" }
+                ]
+            },
+            3: {
+                title: "美瑛雪國一日遊 🌲",
+                date: "2026 / 01 / 17 (SAT)",
+                location: "Biei",
+                events: [
+                    { time: "07:30", type: "交通", title: "大通站 31 號出口集合 🚌", loc: "大通車站 31 號出口", color: "blue", transport: "7:15 要從飯店出發前往集合地點。", intro: "參加Klook一日遊行程，請務必準時抵達大通站 31 號出口。" },
+                    { time: "10:00", type: "觀光", title: "四季彩之丘 ❄️⛄️", loc: "四季彩之丘", color: "purple", note: "雪上摩托車 需備現金。", intro: "冬天的四季彩之丘覆蓋著厚厚的白雪，除了賞景，還可以自費體驗雪上摩托車。❄️" },
+                    { time: "11:30", type: "觀光", title: "白鬚瀑布 💠❄️", loc: "白金溫泉 白鬚瀑布", color: "purple", intro: "著名的冬日美景，瀑布結冰與湛藍的美瑛川形成對比。" },
+                    { time: "12:30", type: "用餐", title: "午餐時間 🍱", loc: "ハーブガーデン富良野", color: "red", intro: "HERB GARDEN FURANO 行程配合的用餐地點。" },
+                    { time: "14:30", type: "觀光", title: "森林精靈露台 🕯️🌲", loc: "新富良野王子大飯店 精靈露台", color: "purple", intro: "森林中的精緻木屋小店，在雪季中散發童話般的氛圍。" },
+                    { time: "18:10", type: "交通", title: "大通站 31 號出口解散 🚌", loc: "大通車站 31 號出口", color: "blue", intro: "結束 Klook 一日遊行程，返回市區展開自由活動。" },
+                    { time: "19:00", type: "用餐", title: "晚餐 🐑 烤羊肉 🐑🔥", loc: "士別成吉思汗すすきの店", color: "red", note: "已訂位 4+3 位。", intro: "成吉思汗烤羊肉是北海道極具代表性的在地料理，起源於開拓時期的畜牧文化。由於北海道氣候寒冷、土地遼闊，環境與蒙古草原相似，適合飼養羊隻，羊肉因此成為重要蛋白質來源。「成吉思汗」之名源自蒙古意象與行銷聯想，並非歷史人物本人。傳統鐵鍋外型如蒙古戰士頭盔，中間烤肉、周圍烤蔬菜，風味清爽不膩，是觀光客與在地人皆喜愛的北海道名物。" },
+                    { time: "20:30", type: "購物", title: "狸小路購物 🛍️", loc: "狸小路4丁目", color: "orange", intro: "回味狸小路的熱鬧氛圍，繼續採買行程。" },
+                    { time: "21:30", type: "購物", title: "cocono susukino 🏢", loc: "cocono susukino", color: "orange", note: "開到 00:00。", intro: "薄野的新地標商場，夜晚也能享受購物的樂趣。" },
+                    { time: "22:30", type: "用餐", title: "餐後甜點 🍦 冰淇淋", loc: "GELATERIA La Giostra", color: "red", note: "20:00 開門。", intro: "來一碗美味的義式冰淇淋，為今天畫下完美的句點。" },
+                    { time: "23:30", type: "住宿", title: "回飯店休息 💤", loc: "JR進 札幌站南口", color: "green", intro: "返回飯店休息，準備接下來的行程。" }
+                ]
+            },
+            4: {
+                title: "札幌美食與文化 🍦",
+                date: "2026 / 01 / 18 (SUN)",
+                location: "Sapporo",
+                events: [
+                    { time: "08:30", type: "用餐", title: "早餐 🐟 北のグルメ 🐟", loc: "海鮮市場 北のグルメ", color: "red", transport: "前一天要預約接駁車！", intro: "北のグルメ是札幌知名的海鮮市場與餐廳，主打新鮮直送的北海道海產，如帝王蟹、毛蟹、干貝與鮭魚卵。店內可享用現做海鮮丼、燒烤與定食。" },
+                    { time: "10:30", type: "觀光", title: "白色戀人公園 🍪🎡", loc: "白色戀人公園", color: "purple", note: "⚡️ 到達後先去伴手禮店訂製客製化產品。", intro: "白色戀人公園是北海道知名甜點品牌「白色戀人」的主題園區，融合歐風庭園、甜點文化與觀光工廠。園區可了解巧克力與餅乾製作過程，並設有紀念品商店與咖啡廳。冬季園區裝飾與雪景相互映襯，充滿浪漫氣氛，適合拍照、購物與輕鬆散步，是札幌人氣極高的親子與情侶景點。" },
+                    { time: "12:30", type: "觀光", title: "北海道神宮 ⛩️❄️", loc: "北海道神宮", color: "purple", transport: "🚇 東西線（宮之澤 > 圓山公園）", intro: "北海道神宮位於札幌市中心的圓山地區，是北海道最具代表性的神社，主祀開拓北海道的重要神祇，象徵開拓、守護與繁榮。神宮四周被森林環繞，四季景色分明，冬季白雪覆蓋參道與鳥居，氛圍莊嚴而寧靜，是當地居民參拜新年、祈求平安與好運的重要場所，也能感受北海道深厚的歷史與信仰文化。" },
+                    { time: "13:30", type: "觀光", title: "圓山公園滑雪趣 ❄️🍩", loc: "円山公園", color: "purple", intro: "圓山公園內的開闊雪原，非常適合玩雪。這裡有雪上甜甜圈等有趣的冬日活動。" },
+                    { time: "14:30", type: "用餐", title: "午餐 🥩 はららき 豬排 🥩", loc: "はららき 円山店", color: "red", intro: "在圓山公園附近享用厚實多汁的日式豬排，補充體力。" },
+                    { time: "16:00", type: "觀光", title: "北海道大學散步 🏫❄️", loc: "北海道大學", color: "purple", note: "⚠️ 16:30 咖啡廳關門。", intro: "北海道大學是日本知名的國立大學，校園位於札幌市中心，卻擁有遼闊綠地與豐富自然景觀。校內林蔭大道與歷史建築四季皆美，冬季雪景尤為迷人。校園內可購買以「札幌農學校」為名的乳製品與甜點，承襲北大農學傳統，風味純樸，是結合學術氣息與北海道特色伴手禮的代表。" },
+                    { time: "18:30", type: "用餐", title: "晚餐 🥟 餃子大餐 🥟", loc: "SAPPORO餃子製造所", color: "red", intro: "品嚐札幌在地的飽滿餃子，是暖胃的最佳選擇。" },
+                    { time: "21:00", type: "住宿", title: "回飯店休息 💤", loc: "JR進 札幌站南口", color: "green", intro: "回到飯店好好休息，準備明天的洞爺湖之行。" }
+                ]
+            },
+            5: {
+                title: "前往洞爺湖 ♨️",
+                date: "2026 / 01 / 19 (MON)",
+                location: "Lake Toya",
+                events: [
+                    { time: "10:00", type: "住宿", title: "Checkout 寄放行李 🧳", loc: "JR進 札幌站南口", color: "green", intro: "收拾行囊，準備離開待了幾天的札幌。" },
+                    { time: "10:30", type: "用餐", title: "午餐 🍲 奧芝商店 湯咖哩 🍲", loc: "湯咖喱 奥芝商店 站前創成寺", color: "red", note: "11:00 開門。要搶第一批進去，不然來不及趕接駁車！！！", intro: "札幌必吃的超人氣蝦湯底湯咖哩！！" },
+                    { time: "12:30", type: "交通", title: "準備前往接駁點 🚌", loc: "札幌市民ホール", color: "blue", transport: "12:30 前務必從 JR inn 出發，以免錯過 12:45 的車！", intro: "提領行李後前往集合地點，搭乘專車前往洞爺湖。" },
+                    { time: "15:30", type: "住宿", title: "入住 湖之栖飯店 🏨♨️", loc: "ザ・レイクスイート湖の栖", color: "green", intro: "湖之栖飯店位於洞爺湖溫泉區，是結合自然景觀與靜謐氛圍的高質感溫泉旅宿。全館客房皆設有專屬個人湯屋，可不受時間與他人影響，自在享受溫泉時光。房間設計簡約舒適，部分房型可眺望洞爺湖景。" },
+                    { time: "16:30", type: "觀光", title: "飯店放鬆 & 洞爺湖散策 ❄️💠", loc: "洞爺湖", color: "purple", intro: "洞爺湖是北海道最具代表性的火山湖之一，位於支笏洞爺國立公園內，湖水因地熱影響終年不凍，四季皆可欣賞不同風貌。湖中央的「中島」由多座火山島組成，是洞爺湖的象徵景觀，可搭乘遊船近距離觀賞自然生態。湖畔分布著洞爺湖溫泉鄉，結合湖景、山景與溫泉資源，是北海道知名的度假勝地。" },
+                    { time: "18:30", type: "用餐", title: "晚餐 🍽️ 飯店 Buffet 🍽️", loc: "ザ・レイクスイート湖の栖", color: "red", intro: "在飯店內享用豐盛的自助晚餐，品嚐北海道在地食材。" },
+                    { time: "21:00", type: "住宿", title: "飯店休息 💤♨️", loc: "ザ・レイクスイート湖の栖", color: "green", intro: "在個人湯屋泡湯後，聽著湖水聲靜靜入眠。" }
+                ]
+            },
+            6: {
+                title: "洞爺周邊與函館夜景 🌃",
+                date: "2026 / 01 / 20 (TUE)",
+                location: "Hakodate",
+                events: [
+                    { time: "08:30", type: "用餐", title: "早餐 🍽️ 飯店 Buffet", loc: "ザ・レイクスイート湖の栖", color: "red", intro: "在湖景陪伴下享用最後的洞爺湖早餐。" },
+                    { time: "10:00", type: "觀光", title: "Checkout & 包車出發 🚐💨", loc: "ザ・レイクスイート湖の栖", color: "green", note: "包車時間：10:00-18:00。", intro: "收拾行囊辦理退房，包車司機已在門口等候。" },
+                    { time: "10:30", type: "觀光", title: "有珠山纜車 🚠❄️", loc: "洞爺湖有珠山口纜車", color: "purple", intro: "有珠山口纜車位於洞爺湖附近，可輕鬆登上海拔較高的展望區，俯瞰洞爺湖、有珠山與昭和新山的壯麗景色。有珠山為活火山，沿途可觀察火山活動留下的地形痕跡，兼具觀光與地質教育意義。" },
+                    { time: "12:00", type: "用餐", title: "午餐 🍜 麵店 嵐 🍜", loc: "麵店 嵐", color: "red", intro: "在洞爺湖附近享用熱騰騰的在地拉麵。" },
+                    { time: "13:00", type: "觀光", title: "浮見堂公園 ⛩️🦢", loc: "浮見堂公園", color: "purple", intro: "浮見堂公園位於洞爺湖畔，是能近距離感受湖面靜謐氛圍的散步型景點。園內的浮見堂建於湖上，與湖水、山景相互映襯，天氣晴朗時倒影清晰，畫面優美。公園規模不大，適合短暫停留、拍照。" },
+                    { time: "13:30", type: "觀光", title: "筒倉展望台 🔭❄️", loc: "サイロ展望台", color: "purple", intro: "サイロ展望台位於洞爺湖西側高地，是眺望洞爺湖全景的經典展望點之一。從此可一覽洞爺湖、湖中島嶼與周圍群山，視野開闊，天氣好時景色層次分明。展望台設有停車場與紀念品店。" },
+                    { time: "13:45", type: "用餐", title: "點心 🍦 Lake Hill Farm 🍦", loc: "Lake Hill Farm", color: "red", intro: "人氣農場點心，推薦品嚐鮮奶製作的義式冰淇淋與泡芙。" },
+                    { time: "14:00", type: "交通", title: "前往函館 🚗❄️", loc: "洞爺湖 > 函館", color: "blue", intro: "開始長距離移動，沿途可欣賞噴火灣的海岸雪景，大約需要 2.5 至 3 小時車程。" },
+                    { time: "17:00", type: "住宿", title: "Check-in 🏨 JR Inn Hakodate", loc: "JR Inn Hakodate", color: "green", intro: "抵達函館車站旁的飯店，地理位置極佳，方便前往各個景點。" },
+                    { time: "18:30", type: "觀光", title: "函館山纜車 🚠🌃", loc: "函館山纜車 山麓站", color: "purple", transport: "18:00 後包車結束，改搭路面電車至『十字街』站步行前往。", intro: "準備搭乘大型纜車登上山頂，迎接百萬級的璀璨視覺饗宴。" },
+                    { time: "19:00", type: "觀光", title: "函館山夜景 🌃✨", loc: "函館山展望台", color: "purple", intro: "函館山展望台以被譽為「百萬夜景」的壯麗景色聞名於世，也是世界三大夜景之一。從山頂可俯瞰函館市區，城市燈火被津輕海峽與函館灣包圍，形成獨特的扇形地貌，夜晚燈光層層延展。" },
+                    { time: "21:00", type: "用餐", title: "晚餐 🦑 いか太郎 朝市店 🦑", loc: "いか太郎 朝市プレジデント店", color: "red", transport: "路面電車 2/5 (十字街 > 函館站前)", intro: "いか太郎朝市プレジデント店位於函館朝市內，是以新鮮海鮮聞名的人氣餐廳。主打活魷魚料理、海鮮丼與各式定食。" },
+                    { time: "22:30", type: "住宿", title: "飯店休息 💤", loc: "JR Inn Hakodate", color: "green", intro: "回到飯店休息，明天準備逛朝市！" }
+                ]
+            },
+            7: {
+                title: "函館巡禮與賦歸 🛫",
+                date: "2026 / 01 / 21 (WED)",
+                location: "Hakodate",
+                events: [
+                    { time: "08:30", type: "用餐", title: "早餐：飯店早餐 🍳☕️", loc: "JR Inn Hakodate", color: "red", intro: "享用飯店提供的豐盛早餐，為最後一天充電。" },
+                    { time: "10:00", type: "住宿", title: "Checkout 寄放行李 🧳", loc: "JR Inn Hakodate", color: "green", intro: "辦理退房手續，先將行李寄放在飯店，輕裝出發。" },
+                    { time: "11:00", type: "觀光", title: "五稜郭塔與要塞 ⭐️", loc: "五稜郭塔", color: "purple", transport: "🚌 巴士 610 / 5", intro: "五稜郭是日本少見的星形要塞，建於幕末時期，融合西洋軍事防禦設計與日本歷史背景，是函館極具代表性的歷史地標。登上五稜郭塔可俯瞰完整星形輪廓。" },
+                    { time: "12:30", type: "用餐", title: "午餐：小丑漢堡 🍔", loc: "幸運小丑漢堡 五稜郭公園店", color: "red", intro: "小丑漢堡是函館限定的在地連鎖速食店，以誇張裝潢與份量十足的漢堡聞名。最具代表性的招牌是中式風味的「中華炸雞漢堡」。" },
+                    { time: "14:00", type: "觀光", title: "金森倉庫 & 八幡坂 🧱🌉", loc: "金森赤レンガ倉庫", color: "purple", transport: "🚇 路面電車 2/5 (五稜郭公園前 > 十字街)", intro: "金森紅磚倉庫保留濃厚港町風情；八幡坂則是函館最著名的坡道景點，天氣晴朗時視野開闊，是函館經典拍照地點。" },
+                    { time: "15:00", type: "交通", title: "前往機場 ", loc: "函館車站", color: "blue", transport: "🚇 路面電車 2/5 (十字街 > 函館站前)\n🎒 回飯店拿行李後前往巴士站。\n🚌 機場接駁巴士建議：15:20 / 15:30", note: "車程約 30 分鐘，建議先買票。", intro: "搭乘接駁巴士前往機場，準備辦理登機手續。" },
+                    { time: "16:00", type: "交通", title: "機場報到 ", loc: "函館空港", color: "blue", note: "星宇 JX861", intro: "抵達函館空港，辦理星宇航空 JX861 的報到手續。" },
+                    { time: "18:00", type: "交通", title: "起飛 🛫", loc: "函館空港", color: "blue", intro: "告別美麗的北海道，帶著滿滿的回憶踏上歸途。" },
+                    { time: "21:35", type: "交通", title: "降落台灣 🛬🇹🇼", loc: "臺灣桃園國際機場 (TPE)", color: "blue", note: "第一航廈。", intro: "順利抵達桃園機場，結束這趟精彩的 7 天北海道雪國之旅。" }
+                ]
+            }
+        };
+
+        const checklistData = [
+            { category: "一、證件與重要文件", items: ["護照（建議有效期限 6 個月以上）", "機票或電子機票", "信用卡（建議至少 1–2 張）", "日圓現金"] },
+            { category: "二、交通與支付用品", items: ["Suica／PASMO／ICOCA", "手機設定 Apple Pay／Google Pay", "行動電源（低溫特別重要）"] },
+            { category: "三、通訊與電子用品", items: ["eSIM／SIM 卡／Wi-Fi 分享器", "手機充電線", "耳機", "相機與拍攝設備"] },
+            { category: "四、衣物與隨身用品", items: ["外套（建議羽絨衣）", "發熱衣或保暖內層", "厚襪子", "好走、防滑的鞋子", "圍巾、手套、帽子", "折疊雨傘"] },
+            { category: "五、個人清潔與保養", items: ["牙刷、牙膏", "保養與化妝用品", "護唇膏", "護手霜", "保濕噴霧", "口罩（防寒防乾燥）"] },
+            { category: "六、醫藥與健康用品", items: ["個人常備藥", "感冒藥、腸胃藥", "OK 繃", "乾洗手／濕紙巾"] },
+            { category: "七、其他實用小物", items: ["摺疊購物袋", "面紙", "小塑膠袋", "行李鎖與吊牌"] }
+        ];
+
+        const tipsData = [
+            { title: "低溫防寒", icon: "alert-circle", color: "text-red-400", content: "室外寒冷、室內暖氣強，溫差極大，能隨時穿脫才是關鍵。發熱衣、保暖中層與外套分層搭配，進室內即可脫外層，避免流汗後著涼。" },
+            { title: "地面防滑", icon: "snowflake", color: "text-blue-400", content: "地面經常結冰（黑冰），請穿防滑鞋、放慢腳步並採取小碎步避免滑倒。" },
+            { title: "室內乾燥", icon: "droplets", color: "text-blue-400", content: "冬季室內空氣非常乾燥，暖氣長時間開啟容易讓皮膚乾癢、嘴唇乾裂，甚至流鼻血，建議隨身攜帶乳液、護手霜與護唇膏，隨時補擦。" },
+            { title: "室內禮儀", icon: "moon", color: "text-slate-400", content: "進室內前拍掉鞋底積雪以及脫下冰爪，避免地板打滑或破壞地面。" },
+            { title: "行走安全", icon: "navigation", color: "text-emerald-400", content: "請避免邊走邊滑手機，以免發生危險。" },
+            { title: "日照時間", icon: "clock", color: "text-orange-400", content: "冬季下午四點天色即變暗，建議努力起床提早出門，行程盡量排在白天。" },
+            { title: "手機電量", icon: "alert-circle", color: "text-blue-500", content: "低溫會讓手機耗電極快，請務必隨身攜帶行動電源。" }
+        ];
+
+        const typeColors = {
+            blue: "bg-blue-50 text-blue-600 border-blue-100",
+            orange: "bg-orange-50 text-orange-600 border-orange-100",
+            green: "bg-emerald-50 text-emerald-600 border-emerald-100",
+            red: "bg-rose-50 text-rose-600 border-rose-100",
+            purple: "bg-purple-50 text-purple-600 border-purple-100"
+        };
+
+        let currentView = 'tips';
+
+        function createSnow() {
+            const container = document.getElementById('snow-container');
+            for(let i=0; i<25; i++) {
+                const snow = document.createElement('div');
+                snow.className = 'snow-particle';
+                const size = Math.random() * 4 + 2;
+                snow.style.width = size + 'px';
+                snow.style.height = size + 'px';
+                snow.style.left = Math.random() * 100 + 'vw';
+                snow.style.top = '-10vh';
+                snow.style.animation = `snowfall ${Math.random() * 10 + 10}s linear infinite`;
+                snow.style.animationDelay = `${Math.random() * 5}s`;
+                container.appendChild(snow);
+            }
+        }
+
+        function setView(view) {
+            currentView = view;
+            renderContent();
+            renderNav();
+            window.scrollTo(0,0);
+        }
+
+        function renderNav() {
+            const dayButtons = document.getElementById('day-buttons');
+            dayButtons.innerHTML = '';
+            [1, 2, 3, 4, 5, 6, 7].forEach(day => {
+                const btn = document.createElement('button');
+                btn.className = `flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold transition-all ${currentView === day ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-50'}`;
+                btn.innerText = `D${day}`;
+                btn.onclick = () => setView(day);
+                dayButtons.appendChild(btn);
+            });
+
+            document.getElementById('btn-checklist').className = `flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-all ${currentView === 'checklist' ? 'bg-blue-500 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-50'}`;
+            document.getElementById('btn-tips').className = `flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-all ${currentView === 'tips' ? 'bg-orange-500 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-50'}`;
+        }
+
+        function renderContent() {
+            const container = document.getElementById('main-content');
+            const titleEl = document.getElementById('header-title');
+            const subtitleEl = document.getElementById('header-subtitle');
+            const tempEl = document.getElementById('temp-val');
+            const locEl = document.getElementById('header-loc');
+
+            container.innerHTML = '';
+            container.className = "max-w-md mx-auto px-4 py-4 relative";
+
+            if (typeof currentView === 'number') {
+                const data = tripData[currentView];
+                titleEl.innerText = `Day ${currentView}: ${data.title}`;
+                subtitleEl.innerText = data.date;
+                tempEl.innerText = currentView >= 6 ? "-2°C" : "-5°C";
+                locEl.innerText = data.location;
+                container.classList.add('timeline-line');
+
+                let reminderMsg = "";
+                if (currentView === 1) reminderMsg = "護照記得檢查效期 記得要帶！！";
+                else if (currentView === 3) reminderMsg = "07:15 準時出發，一定要早起！";
+                else if (currentView === 4) reminderMsg = "08:30 接駁車會準時來接！";
+                else if (currentView === 5) reminderMsg = "12:45 接駁車，11:00 前要進湯咖哩！";
+                else if (currentView === 6) reminderMsg = "10:00-18:00 包車服務";
+                else if (currentView === 7) reminderMsg = "機場巴士 15:20/15:30";
+
+                if (reminderMsg) {
+                    container.innerHTML += `
+                        <div class="relative z-10 mb-3 bg-red-50 border border-red-100 rounded-xl p-3 flex items-center gap-3 shadow-sm">
+                            <i data-lucide="alert-circle" class="w-4 h-4 text-red-500 flex-shrink-0"></i>
+                            <p class="text-xs text-red-700 font-bold">${reminderMsg}</p>
+                        </div>
+                    `;
+                }
+
+                const listDiv = document.createElement('div');
+                listDiv.className = "space-y-3";
+                data.events.forEach((ev, idx) => {
+                    const card = document.createElement('div');
+                    card.className = "relative z-10 group";
+                    card.onclick = () => card.classList.toggle('expanded');
+                    
+                    const transportHtml = ev.transport ? `
+                        <div class="bg-blue-50/50 rounded-lg p-2.5 border-l-4 border-blue-400 mb-3">
+                            <div class="flex items-center text-blue-700 text-[10px] font-bold mb-1"><i data-lucide="navigation" class="w-3 h-3 mr-1.5"></i> 交通資訊</div>
+                            <div class="text-[11px] text-blue-800 whitespace-pre-line leading-relaxed font-medium">${ev.transport}</div>
+                        </div>
+                    ` : '';
+
+                    const formattedNote = ev.note ? ev.note.replace(/(需備現金)/g, '<span class="text-red-500 font-bold">$1</span>') : '';
+
+                    card.innerHTML = `
+                        <div class="flex gap-4">
+                            <div class="flex flex-col items-center flex-shrink-0 pt-1">
+                                <span class="text-[9px] font-bold text-slate-400 mb-2 w-12 text-center">${ev.time}</span>
+                                <div class="w-2.5 h-2.5 rounded-full border-2 border-white shadow-sm ring-4 ring-[#F5F7FA] bg-slate-300 group-[.expanded]:bg-blue-500 transition-colors"></div>
+                            </div>
+                            <div class="flex-grow bg-white rounded-xl border border-slate-100 shadow-sm p-3 group-[.expanded]:ring-2 group-[.expanded]:ring-blue-500/10">
+                                <div class="flex justify-between items-start">
+                                    <div class="flex-grow">
+                                        <span class="inline-block text-[9px] font-bold px-2 py-0.5 rounded-full border ${typeColors[ev.color] || 'bg-slate-50'} mb-1.5">${ev.type || '行程'}</span>
+                                        <h3 class="text-sm font-bold text-slate-800 leading-tight">${ev.title}</h3>
+                                        <div class="flex items-center mt-1 gap-2">
+                                            <p class="text-[10px] text-slate-400 flex items-center"><i data-lucide="map-pin" class="w-3 h-3 mr-1"></i> ${ev.loc}</p>
+                                            <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ev.loc)}" target="_blank" class="p-1 rounded-full bg-slate-50 border border-slate-100 text-blue-500" onclick="event.stopPropagation()"><i data-lucide="external-link" class="w-3 h-3"></i></a>
+                                        </div>
+                                    </div>
+                                    <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-300 transition-transform group-[.expanded]:rotate-180"></i>
+                                </div>
+                                <div class="expand-content">
+                                    <div class="space-y-3 border-t border-slate-50 pt-3 mt-3">
+                                        ${transportHtml}
+                                        <p class="text-[13px] text-slate-600 leading-relaxed font-light whitespace-pre-line">${ev.intro || ''}</p>
+                                        ${ev.note ? `<div class="flex items-start text-[11px] text-slate-500 font-medium leading-relaxed"><i data-lucide="info" class="w-3 h-3 mt-0.5 mr-2 text-slate-400 flex-shrink-0"></i>備註：${formattedNote}</div>` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    listDiv.appendChild(card);
+                });
+                container.appendChild(listDiv);
+            } 
+            else if (currentView === 'checklist') {
+                titleEl.innerText = "必備攜帶清單 🧳";
+                subtitleEl.innerText = "Travel Preparation";
+                locEl.innerText = "Guidance";
+                const listDiv = document.createElement('div');
+                listDiv.className = "space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500";
+                checklistData.forEach(cat => {
+                    const div = document.createElement('div');
+                    div.className = "bg-white rounded-2xl p-4 border border-slate-100 shadow-sm";
+                    div.innerHTML = `
+                        <h4 class="text-[13px] font-bold text-slate-800 mb-3 border-b pb-2 flex items-center gap-2"><i data-lucide="check-square" class="w-3.5 h-3.5 text-blue-500"></i> ${cat.category}</h4>
+                        <div class="grid grid-cols-1 gap-2">
+                            ${cat.items.map(item => `<div class="flex items-center gap-3"><div class="w-3.5 h-3.5 rounded border-2 border-slate-200"></div><span class="text-[12px] text-slate-600">${item}</span></div>`).join('')}
+                        </div>
+                    `;
+                    listDiv.appendChild(div);
+                });
+                container.appendChild(listDiv);
+            } 
+            else if (currentView === 'tips') {
+                titleEl.innerText = "冬季注意事項 ❄️";
+                subtitleEl.innerText = "Travel Preparation";
+                locEl.innerText = "Guidance";
+                const listDiv = document.createElement('div');
+                listDiv.className = "space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-500";
+                tipsData.forEach(tip => {
+                    const div = document.createElement('div');
+                    div.className = "bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex gap-4";
+                    div.innerHTML = `
+                        <div class="mt-1 flex-shrink-0"><i data-lucide="${tip.icon}" class="w-5 h-5 ${tip.color}"></i></div>
+                        <div><h4 class="text-sm font-bold text-slate-800 mb-0.5">${tip.title}</h4><p class="text-[12px] text-slate-600 leading-relaxed">${tip.content}</p></div>
+                    `;
+                    listDiv.appendChild(div);
+                });
+                listDiv.innerHTML += `<div class="mt-8 py-8 text-center"><i data-lucide="snowflake" class="w-8 h-8 text-blue-300 mx-auto mb-3 opacity-50"></i><p class="text-slate-500 text-sm font-bold italic tracking-wide">“祝大家有個難忘的雪國之旅！”</p></div>`;
+                container.appendChild(listDiv);
+            }
+
+            lucide.createIcons();
+        }
+
+        window.onload = () => {
+            createSnow();
+            setView('tips');
+        };
+    </script>
+</body>
+</html>
